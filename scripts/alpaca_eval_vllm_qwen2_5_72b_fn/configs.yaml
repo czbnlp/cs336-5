@@ -1,0 +1,7 @@
+alpaca_eval_qwen_7b_api_fn:
+  prompt_template: "alpaca_eval_vllm_qwen2_5_72b_fn/alpaca_eval_fn.txt"
+  fn_completions: "openai_completions" # 修改为 OpenAI 兼容接口模式
+  completions_kwargs:
+    model_name: "Qwen2.5-7B-Instruct" # 必须与你 vllm serve 时的 --served-model-name 一致
+    temperature: 0.0
+  fn_completion_parser: "ranking_parser" # 解析函数

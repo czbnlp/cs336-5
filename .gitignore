@@ -1,0 +1,280 @@
+*.bin
+models/
+data/
+
+nav
+tags
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+#   For a library or package, you might want to ignore these files since the code is
+#   intended to run in multiple environments; otherwise, check them in:
+.python-version
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
+
+# poetry
+#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
+#poetry.lock
+
+# pdm
+#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
+#pdm.lock
+#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
+#   in version control.
+#   https://pdm.fming.dev/#use-with-ide
+.pdm.toml
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# PyCharm
+#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
+#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+#  and can be added to the global gitignore or merged into this file.  For a more nuclear
+#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
+#.idea/
+data/sft/train_6.jsonl
+data/sft/train_7.jsonl
+data/sft/train_4.jsonl
+data/sft/train_8.jsonl
+data/sft/train_5.jsonl
+data/sft/train_9.jsonl
+data/sft/train_2.jsonl
+data/sft/train_3.jsonl
+data/sft/train_0.jsonl
+data/sft/train_1.jsonl
+data/sft/sft-instruct/train.jsonl
+model/Qwen2.5-7B-Instruct/model-00002-of-00004.safetensors
+model/Qwen2.5-7B-Instruct/model-00004-of-00004.safetensors
+model/Qwen2.5-7B-Instruct/model-00003-of-00004.safetensors
+model/Qwen2.5-7B-Instruct/model-00001-of-00004.safetensors
+model/Qwen2.5-72B-Instruct/model-00011-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00029-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00033-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00022-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00024-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00035-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00006-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00017-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00001-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00010-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00023-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00032-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00028-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00034-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00025-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00016-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00007-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00020-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00031-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00018-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00002-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00009-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00013-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00015-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00004-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00037-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00026-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00030-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00021-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00012-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00008-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00003-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00019-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00005-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00014-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00027-of-00037.safetensors
+model/Qwen2.5-72B-Instruct/model-00036-of-00037.safetensors
+model/Qwen2.5-7B/model-00001-of-00004.safetensors
+model/Qwen2.5-7B/model-00003-of-00004.safetensors
+model/Qwen2.5-7B/model-00002-of-00004.safetensors
+model/Qwen2.5-7B/model-00004-of-00004.safetensors
+model/Qwen2.5-Math-1.5B/model.safetensors
+.venv/lib/python3.12/site-packages/flash_attn_2_cuda.cpython-312-x86_64-linux-gnu.so
+.venv/lib/python3.12/site-packages/vllm/_C.abi3.so
+.venv/lib/python3.12/site-packages/vllm/vllm_flash_attn/_vllm_fa3_C.abi3.so
+.venv/lib/python3.12/site-packages/vllm/vllm_flash_attn/_vllm_fa2_C.abi3.so
+.venv/lib/python3.12/site-packages/nvidia/cusolver/lib/libcusolver.so.11
+.venv/lib/python3.12/site-packages/nvidia/nccl/lib/libnccl.so.2
+.venv/lib/python3.12/site-packages/nvidia/cufft/lib/libcufft.so.11
+.venv/lib/python3.12/site-packages/nvidia/cudnn/lib/libcudnn_adv.so.9
+.venv/lib/python3.12/site-packages/nvidia/cudnn/lib/libcudnn_ops.so.9
+.venv/lib/python3.12/site-packages/nvidia/cudnn/lib/libcudnn_engines_precompiled.so.9
+.venv/lib/python3.12/site-packages/nvidia/cublas/lib/libcublasLt.so.12
+.venv/lib/python3.12/site-packages/nvidia/cublas/lib/libcublas.so.12
+.venv/lib/python3.12/site-packages/nvidia/cusparse/lib/libcusparse.so.12
+.venv/lib/python3.12/site-packages/triton/_C/libtriton.so
+.venv/lib/python3.12/site-packages/torch/lib/libcusparseLt-294d6944.so.0
+.venv/lib/python3.12/site-packages/torch/lib/libtorch_cuda.so
+.venv/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so
+result/grpo_offpolicy_study/E5_TB256_LR1.34164e-05/grpo_step100/model.safetensors
+result/grpo_offpolicy_study/E5_TB64_LR3.3541e-06/grpo_step100/model.safetensors
+result/grpo_offpolicy_study/E5_TB64_LR3.3541e-06/grpo_step200/model.safetensors
+result/grpo_offpolicy_study/E5_TB128_LR6.7082e-06/grpo_step100/model.safetensors
+result/grpo_offpolicy_study/E5_TB128_LR6.7082e-06/grpo_step200/model.safetensors
+result/ei_checkpoints/ei_G8_Db7000_E1_lr1e-5/ei_iter4_step1013/model.safetensors
+result/ei_checkpoints/ei_G8_Db7000_E1_lr1e-5/ei_iter2_step228/model.safetensors
+result/ei_checkpoints/ei_G8_Db7000_E1_lr1e-5/ei_iter1_step29/model.safetensors
+result/ei_checkpoints/ei_G8_Db7000_E1_lr1e-5/ei_iter3_step575/model.safetensors
+result/ei_checkpoints/ei_G8_Db1024_E1_lr1e-5/ei_iter3_step56/model.safetensors
+result/ei_checkpoints/ei_G8_Db1024_E1_lr1e-5/ei_iter2_step23/model.safetensors
+result/ei_checkpoints/ei_G8_Db1024_E1_lr1e-5/ei_iter4_step97/model.safetensors
+result/ei_checkpoints/ei_G8_Db1024_E1_lr1e-5/ei_iter5_step146/model.safetensors
+result/ei_checkpoints/ei_G8_Db1024_E1_lr1e-5/ei_iter1_step4/model.safetensors
+result/ei_checkpoints/ei_G8_Db4096_E1_lr1e-5/ei_iter2_step125/model.safetensors
+result/ei_checkpoints/ei_G8_Db4096_E1_lr1e-5/ei_iter4_step525/model.safetensors
+result/ei_checkpoints/ei_G8_Db4096_E1_lr1e-5/ei_iter3_step302/model.safetensors
+result/ei_checkpoints/ei_G8_Db4096_E1_lr1e-5/ei_iter5_step775/model.safetensors
+result/ei_checkpoints/ei_G8_Db4096_E1_lr1e-5/ei_iter1_step17/model.safetensors
+result/ei_checkpoints/ei_G4_Db4096_E1_lr1e-5/ei_iter5_step345/model.safetensors
+result/ei_checkpoints/ei_G4_Db4096_E1_lr1e-5/ei_iter4_step235/model.safetensors
+result/ei_checkpoints/ei_G4_Db4096_E1_lr1e-5/ei_iter2_step57/model.safetensors
+result/ei_checkpoints/ei_G4_Db4096_E1_lr1e-5/ei_iter1_step9/model.safetensors
+result/ei_checkpoints/ei_G4_Db4096_E1_lr1e-5/ei_iter3_step136/model.safetensors
+result/ei_checkpoints/ei_G4_Db1024_E1_lr1e-5/ei_iter3_step20/model.safetensors
+result/ei_checkpoints/ei_G4_Db1024_E1_lr1e-5/ei_iter4_step36/model.safetensors
+result/ei_checkpoints/ei_G4_Db1024_E1_lr1e-5/ei_iter5_step55/model.safetensors
+result/ei_checkpoints/ei_G4_Db1024_E1_lr1e-5/ei_iter1_step2/model.safetensors
+result/ei_checkpoints/ei_G4_Db1024_E1_lr1e-5/ei_iter2_step8/model.safetensors
+result/ei_checkpoints/ei_G4_Db7000_E1_lr1e-5/ei_iter3_step240/model.safetensors
+result/ei_checkpoints/ei_G4_Db7000_E1_lr1e-5/ei_iter1_step14/model.safetensors
+result/ei_checkpoints/ei_G4_Db7000_E1_lr1e-5/ei_iter2_step98/model.safetensors
+result/ei_checkpoints/ei_G4_Db7000_E1_lr1e-5/ei_iter5_step628/model.safetensors
+result/ei_checkpoints/ei_G4_Db7000_E1_lr1e-5/ei_iter4_step421/model.safetensors
+wandb/
+result/
+output/
+checkpoints/
+runs/
