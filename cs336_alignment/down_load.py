@@ -5,10 +5,11 @@ def download_dataset():
     # 数据集在 HF 上的 ID
     # repo_id = "garg-aayush/sft-cs336-assign5-datasets"
     # repo_id = "openbmb/UltraChat"
-    repo_id = "TIGER-Lab/MMLU-Pro"
+    # repo_id = "TIGER-Lab/MMLU-Pro"
+    repo_id = "Anthropic/hh-rlhf"
     
     # 本地保存的目标目录
-    local_dir = "data/MMLU-Pro"
+    local_dir = f"data/{repo_id.split('/')[-1]}"
     
     # 如果 data 目录不存在，则创建
     if not os.path.exists(local_dir):
@@ -26,7 +27,7 @@ def download_dataset():
             local_dir=local_dir,
             repo_type="dataset",
             local_dir_use_symlinks=False,
-            resume_download=True  # 如果断网可以继续下载
+            resume_download=True
         )
         print(f"\n下载完成！文件保存在: {os.path.abspath(local_dir)}")
         

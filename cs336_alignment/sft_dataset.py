@@ -27,8 +27,7 @@ class InstructionDataset(Dataset):
 
         # 3. 格式化与拼接
         template = (
-            "Below is an instruction that describes a task. "
-            "Write a response that appropriately completes the request.\n\n"
+            "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n"
             "### Instruction:\n{prompt}\n\n"
             "### Response:\n{response}"
         )
@@ -42,7 +41,6 @@ class InstructionDataset(Dataset):
             
             formatted_text = template.format(prompt=p, response=r)
             
-            # 保持默认行为：自动添加 BOS (128000)
             tokens = tokenizer.encode(formatted_text)
             
             all_token_ids.extend(tokens)
