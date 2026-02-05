@@ -295,10 +295,10 @@ def log_generations(
         total_answer_reward += ar
 
         # 准备存入 wandb Table 的数据（展示前几条即可，防止日志过大）
-        if i < 10: 
+        if i < 100: 
             table_data.append([
                 step, 
-                prompts[i][-100:], # 只取 prompt 结尾部分
+                prompts[i], # 只取 prompt 结尾部分
                 generated_text, 
                 gold_answer, 
                 r, fr, ar

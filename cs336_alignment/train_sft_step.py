@@ -69,12 +69,6 @@ def run_sft_experiment(args):
     
     wandb.init(project=args.wandb_project, name=args.wandb_run_name, config=vars(args))
     
-    # 对齐坐标轴
-    wandb.define_metric("train_step")
-    wandb.define_metric("eval_step")
-    wandb.define_metric("train/*", step_metric="train_step")
-    wandb.define_metric("eval/*", step_metric="eval_step")
-
     # 加载 Prompt 模版 (用于验证集)
     with open(args.prompt_path, "r") as f:
         r1_template = f.read().strip()
