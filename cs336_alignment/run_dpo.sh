@@ -4,7 +4,7 @@
 
 # 1. 显卡设置
 # 假设你有至少两张卡。如果只有一张卡，需要调整下方的 DEVICE 参数，并大幅减小 Batch Size
-export CUDA_VISIBLE_DEVICES=0,1,2
+export CUDA_VISIBLE_DEVICES=0,1
 
 export WANDB_PROJECT="cs336-dpo-hh"
 
@@ -16,13 +16,6 @@ OUTPUT_DIR="results/dpo_qwen"
 # 4. 评估数据路径
 GSM8K_PATH="data/gsm8k/test.jsonl"
 MMLU_PATH="data/MMLU-Pro/data/test-00000-of-00001.parquet"
-
-# ================= 显存分配策略 (关键) =================
-# DPO 需要同时加载 Policy Model (训练) 和 Reference Model (冻结)。
-# 此外，你还开启了 vLLM 进行评估。
-# 为了防止显存溢出 (OOM)，建议如下分配：
-# GPU 0: 负责训练 (Policy Model + Optimizer States) -> 显存占用最大
-# GPU 1: 负责参考模型 (Reference Model) + 评估 (vLLM) -> 显存占用较小
 
 POLICY_DEVICE="cuda:0"
 REF_DEVICE="cuda:0"
@@ -44,6 +37,8 @@ set -x
 
 python cs336_alignment/train_dpo.py \
     --seed 42 \
+    --train_batch_size 64 \
+    --gradient_accumulation_steps 16 \
     --model_id "$MODEL_PATH" \
     --data_dir "$TRAIN_DATA" \
     --output_dir "$OUTPUT_DIR" \
@@ -51,12 +46,11 @@ python cs336_alignment/train_dpo.py \
     --ref_device "$REF_DEVICE" \
     --lr 5e-7 \
     --num_epochs 1 \
-    --gradient_accumulation_steps 16 \
     --beta 0.1 \
     --max_val_samples 1000 \
     --wandb_project "$WANDB_PROJECT" \
     --wandb_run_name "dpo_qwen_3b_run1" \
-    --eval_every_steps 100 \
+    --eval_every_steps 50 \
     --save_every_steps 500 \
     --vllm_device "$VLLM_DEVICE" \
     --vllm_gpu_util 0.3 \
