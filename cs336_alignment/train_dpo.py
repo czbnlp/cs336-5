@@ -90,7 +90,7 @@ def evaluate_gsm8k(vllm_llm, data_path, num_samples=1000):
             prompts.append(p)
             golds.append(gold)
             
-    outputs = vllm_llm.generate(prompts, SamplingParams(temperature=0.0, max_tokens=512))
+    outputs = vllm_llm.generate(prompts, SamplingParams(temperature=0.0, max_tokens=1024))
     
     correct = 0
     for i, out in enumerate(outputs):
@@ -121,7 +121,7 @@ def evaluate_mmlu_pro(vllm_llm, data_path, num_samples=1000):
         prompts.append(p)
         golds.append(row['answer'])
 
-    outputs = vllm_llm.generate(prompts, SamplingParams(temperature=0.0, max_tokens=16))
+    outputs = vllm_llm.generate(prompts, SamplingParams(temperature=0.0, max_tokens=100))
     
     correct = 0
     for i, out in enumerate(outputs):
@@ -136,36 +136,32 @@ def evaluate_mmlu_pro(vllm_llm, data_path, num_samples=1000):
 #  主训练流程
 # ==========================================
 def run_dpo_training(args):
+    # 计算微批次大小
+    assert args.train_batch_size % args.gradient_accumulation_steps == 0, "batch_size 必须能被 grad_acc_steps 整除"
+    micro_batch_size = args.train_batch_size // args.gradient_accumulation_steps
+    print(f"Update Period: {args.train_batch_size} samples")
+    print(f"Gradient Accumulation Steps: {args.gradient_accumulation_steps}")
+    print(f"Micro Batch Size: {micro_batch_size}")
+
     wandb.init(project=args.wandb_project, name=args.wandb_run_name, config=vars(args))
     
-    # 1. 加载 Tokenizer
-    print(f"Loading Tokenizer: {args.model_id}")
     tokenizer = AutoTokenizer.from_pretrained(args.model_id)
     if tokenizer.pad_token is None: tokenizer.pad_token = tokenizer.eos_token
 
-    # 2. 加载数据
-    print("\n=== Loading Training Data ===")
     train_data = load_anthropic_hh_dataset(args.data_dir, split="train")
-    
-    print("\n=== Loading Validation Data (Test Set) ===")
     val_data = load_anthropic_hh_dataset(args.data_dir, split="test")
     
-    # 验证集采样
     max_val_samples = args.max_val_samples
     if len(val_data) > max_val_samples:
-        print(f"Sampling {max_val_samples} validation samples for speed...")
         random.seed(args.seed)
         val_data = random.sample(val_data, max_val_samples)
 
-    # 3. 加载模型
-    print(f"Loading Policy on {args.device}...")
     policy = AutoModelForCausalLM.from_pretrained(
         args.model_id, torch_dtype=torch.bfloat16, attn_implementation="flash_attention_2"
     ).to(args.device)
     policy.gradient_checkpointing_enable()
 
     ref_device = args.ref_device if args.ref_device else args.device
-    print(f"Loading Reference on {ref_device}...")
     ref_model = AutoModelForCausalLM.from_pretrained(
         args.model_id, torch_dtype=torch.bfloat16, attn_implementation="flash_attention_2"
     ).to(ref_device)
@@ -174,161 +170,143 @@ def run_dpo_training(args):
 
     optimizer = AdamW(policy.parameters(), lr=args.lr)
 
-    # 4. vLLM 初始化
     vllm_inst = None
     if args.enable_eval:
         try:
-            print(f"Initializing vLLM on {args.vllm_device}...")
             vllm_inst = init_vllm(args.model_id, args.vllm_device, args.seed, args.vllm_gpu_util)
         except Exception as e:
             print(f"vLLM Init failed: {e}. Disabling external eval.")
             args.enable_eval = False
 
-    # ------------------------------------------------------------------
-    #  定义内部评估函数
-    # ------------------------------------------------------------------
     def run_evaluation_suite(step_num):
         print(f"\n[Step {step_num}] Running Full Evaluation Suite...")
         logs = {}
-        
-        # A. 验证集 DPO Metrics (PyTorch)
         policy.eval() 
-        val_loss, val_acc = evaluate_validation_set(
-            policy, ref_model, tokenizer, val_data, args.beta, args.device
-        )
+        val_loss, val_acc = evaluate_validation_set(policy, ref_model, tokenizer, val_data, args.beta, args.device)
         logs["val/loss"] = val_loss
         logs["val/accuracy"] = val_acc
-        print(f"  > [Metric] Val Acc: {val_acc:.2%} (Loss: {val_loss:.4f})")
-
-        # B. 外部任务评估 (vLLM)
+        
         if args.enable_eval and vllm_inst is not None:
             update_vllm_weights(policy, vllm_inst)
-            
             if args.eval_gsm8k:
-                print("  > Running GSM8K...")
                 acc = evaluate_gsm8k(vllm_inst, args.gsm8k_path)
-                if acc is not None: 
-                    logs["eval/gsm8k"] = acc
-                    print(f"    GSM8K: {acc:.2%}")
-                
+                if acc is not None: logs["eval/gsm8k"] = acc
             if args.eval_mmlu:
-                print("  > Running MMLU-Pro...")
                 acc = evaluate_mmlu_pro(vllm_inst, args.mmlu_path)
-                if acc is not None: 
-                    logs["eval/mmlu-pro"] = acc
-                    print(f"    MMLU-Pro: {acc:.2%}")
+                if acc is not None: logs["eval/mmlu-pro"] = acc
 
         wandb.log(logs, step=step_num)
         policy.train()
 
-    # ==================================================================
-    # Step 0: Baseline Evaluation
-    # ==================================================================
+    # Step 0 评估
     run_evaluation_suite(step_num=0)
 
     # 5. 训练循环
     global_step = 0
-    total_steps = len(train_data) * args.num_epochs // args.gradient_accumulation_steps
-    progress_bar = tqdm(total=total_steps, desc="DPO Training")
+    # 总更新步数是以 train_batch_size 为单位计算的
+    total_update_steps = (len(train_data) * args.num_epochs) // args.train_batch_size
+    progress_bar = tqdm(total=total_update_steps, desc="DPO Update Steps")
     
     policy.train()
     
-    # 修复：args.num_epochs
     for epoch in range(args.num_epochs):
         random.shuffle(train_data)
-        accum_loss = 0
-        step_metrics = {"acc": [], "margin": []}
         
-        optimizer.zero_grad()
+        # 指标累积变量（针对一个完整的 train_batch_size）
+        current_batch_loss = 0
+        current_batch_metrics = {"acc": [], "margin": []}
         
-        for i, item in enumerate(train_data):
-            
-            loss, metrics = compute_dpo_loss(
-                policy, ref_model, tokenizer, args.beta,
-                item['instruction'], item['chosen'], item['rejected']
-            )
-            
-            
-            # Backward
-            loss = loss / args.gradient_accumulation_steps
-            loss.backward()
-            
-            accum_loss += loss.item()
-            step_metrics['acc'].append(metrics['accuracy'])
-            step_metrics['margin'].append(metrics['reward_margin'])
-            
-            # Optimizer Step
-            if (i + 1) % args.gradient_accumulation_steps == 0:
+        # 以 micro_batch_size 为步长遍历数据
+        for i in range(0, len(train_data), micro_batch_size):
+            micro_batch = train_data[i : i + micro_batch_size]
+            if len(micro_batch) < micro_batch_size: continue # 舍弃末尾不够一个 micro_batch 的数据
+
+            # 处理一个 Micro-Batch
+            for item in micro_batch:
+                try:
+                    loss, metrics = compute_dpo_loss(
+                        policy, ref_model, tokenizer, args.beta,
+                        item['instruction'], item['chosen'], item['rejected']
+                    )
+                    # 梯度缩放：loss 应该除以整个 train_batch_size (64)
+                    # 这样 backward 16 次 micro_batch(每批4个) 后，总梯度正好是 64 个样本的平均
+                    scaled_loss = loss / args.train_batch_size
+                    scaled_loss.backward()
+                    
+                    current_batch_loss += loss.item()
+                    current_batch_metrics['acc'].append(metrics['accuracy'])
+                    current_batch_metrics['margin'].append(metrics['reward_margin'])
+                except Exception as e:
+                    print(f"Error at micro-batch: {e}")
+                    continue
+
+            # 判断是否到了执行 Optimizer Step 的时候
+            # 即检查处理过的样本数是否达到了 train_batch_size
+            samples_processed = (len(current_batch_metrics['acc']))
+            if samples_processed >= args.train_batch_size:
                 torch.nn.utils.clip_grad_norm_(policy.parameters(), 1.0)
                 optimizer.step()
                 optimizer.zero_grad()
                 global_step += 1
                 
-                # Log Train
-                avg_acc = sum(step_metrics['acc'])/len(step_metrics['acc']) if step_metrics['acc'] else 0
-                avg_margin = sum(step_metrics['margin'])/len(step_metrics['margin']) if step_metrics['margin'] else 0
+                # 计算并记录当前更新步的平均指标
+                avg_loss = current_batch_loss / args.train_batch_size
+                avg_acc = np.mean(current_batch_metrics['acc'])
+                avg_margin = np.mean(current_batch_metrics['margin'])
+                
                 wandb.log({
-                    "train/loss": accum_loss * args.gradient_accumulation_steps,
+                    "train/loss": avg_loss,
                     "train/accuracy": avg_acc,
                     "train/margin": avg_margin,
                     "step": global_step
                 })
                 
-                accum_loss = 0
-                step_metrics = {"acc": [], "margin": []}
+                # 重置累积变量
+                current_batch_loss = 0
+                current_batch_metrics = {"acc": [], "margin": []}
                 progress_bar.update(1)
                 
-                # Evaluation
+                # 定期评估
                 if global_step % args.eval_every_steps == 0:
                     run_evaluation_suite(step_num=global_step)
 
-                # Save Checkpoint
+                # 定期保存
                 if global_step % args.save_every_steps == 0:
                     path = os.path.join(args.output_dir, f"step_{global_step}")
-                    print(f"Saving model to {path}...")
                     policy.save_pretrained(path)
                     tokenizer.save_pretrained(path)
 
-    # Final Save
-    print("Training Finished. Saving final model...")
+    print("Training Finished.")
     policy.save_pretrained(os.path.join(args.output_dir, "final"))
     wandb.finish()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    # 路径与配置
     parser.add_argument("--model_id", type=str, default="model/Qwen2.5-7B")
     parser.add_argument("--data_dir", type=str, required=True)
     parser.add_argument("--output_dir", type=str, default="results/dpo")
     
-    # 训练超参
-    parser.add_argument("--seed", type=int, default=42)
+    # 调整后的 Batch 相关参数
+    parser.add_argument("--train_batch_size", type=int, default=64, help="总更新批次大小")
+    parser.add_argument("--gradient_accumulation_steps", type=int, default=16, help="梯度累积步数")
+    
     parser.add_argument("--lr", type=float, default=1e-6)
-    parser.add_argument("--num_epochs", type=int, default=1) # 代码逻辑已修复为使用 num_epochs
-    parser.add_argument("--gradient_accumulation_steps", type=int, default=16)
+    parser.add_argument("--num_epochs", type=int, default=1)
     parser.add_argument("--beta", type=float, default=0.1)
+    parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--weight_decay", type=float, default=0.0)
-    
-    # 硬件
     parser.add_argument("--device", type=str, default="cuda:0")
-    parser.add_argument("--ref_device", type=str, default=None, help="If None, use same as device")
-    
-    # 评估配置
+    parser.add_argument("--ref_device", type=str, default=None)
     parser.add_argument("--enable_eval", action="store_true")
     parser.add_argument("--eval_every_steps", type=int, default=100)
     parser.add_argument("--save_every_steps", type=int, default=200)
     parser.add_argument("--max_val_samples", type=int, default=1000)
-
     parser.add_argument("--vllm_device", type=str, default="cuda:1")
     parser.add_argument("--vllm_gpu_util", type=float, default=0.4)
-    
-    # 具体的评估集
     parser.add_argument("--eval_gsm8k", action="store_true")
     parser.add_argument("--gsm8k_path", type=str, default="data/gsm8k/test.jsonl")
     parser.add_argument("--eval_mmlu", action="store_true")
     parser.add_argument("--mmlu_path", type=str, default="data/MMLU-Pro/test.parquet")
-
-    # WandB
     parser.add_argument("--wandb_project", type=str, default="cs336-dpo")
     parser.add_argument("--wandb_run_name", type=str, default="dpo-exp")
 
