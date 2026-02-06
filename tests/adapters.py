@@ -473,13 +473,13 @@ def run_compute_per_instance_dpo_loss(
         torch.Tensor with the DPO loss for this example.
     """
     from cs336_alignment.dpo_utils import compute_dpo_loss
-    # 传给核心函数的参数必须也是 7 个
-    return compute_dpo_loss(
-        lm, 
-        lm_ref, 
-        tokenizer, 
-        beta, 
-        prompt, 
-        response_chosen, 
-        response_rejected
+    loss, _ = compute_dpo_loss(
+        model=lm, 
+        ref_model=lm_ref, 
+        tokenizer=tokenizer, 
+        beta=beta, 
+        prompt=prompt, 
+        response_chosen=response_chosen, 
+        response_rejected=response_rejected
     )
+    return loss

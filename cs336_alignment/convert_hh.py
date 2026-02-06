@@ -19,7 +19,7 @@ def load_anthropic_hh_dataset(root_dir: str) -> List[Dict[str, str]]:
     combined_data = []
     
     for subset in subsets:
-        file_path = os.path.join(root_dir, subset, "train.jsonl.gz")
+        file_path = os.path.join(root_dir, subset, "test.jsonl.gz")
         
         if not os.path.exists(file_path):
             print(f"警告: 未找到文件 {file_path}，跳过该子集。")
@@ -78,7 +78,7 @@ def inspect_samples(data):
     # 分别抽取 harmless 和 helpful 的样本
     harmless_samples = [d for d in data if "harmless" in d['subset']]
     helpful_samples = [d for d in data if "helpful" in d['subset']]
-    
+    print(len(harmless_samples), len(helpful_samples))
     print("=== 3个 Harmless 样本分析 ===")
     for s in random.sample(harmless_samples, 3):
         print(f"[指令]: {s['instruction']}")

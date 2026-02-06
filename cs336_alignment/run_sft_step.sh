@@ -22,7 +22,7 @@ VLLM_GPU_UTIL=0.6
 # ================= 3. 训练超参数配置 =================
 LR=2e-5
 BATCH_SIZE=64
-MICRO_BATCH_SIZE=4
+MICRO_BATCH_SIZE=2
 MAX_TOKENS=1024
 SEED=42
 gradient_accumulation_steps=32

@@ -42,7 +42,7 @@ def download_dataset():
 
 def download_model():
     # 作业中使用的是 Base 版本
-    repo_id = "Qwen/Qwen2.5-7B"
+    repo_id = "Qwen/Qwen2.5-3B"
     
     # 本地保存路径
     local_dir = "model/" + repo_id.split('/')[-1]
@@ -65,6 +65,6 @@ def download_model():
         print(f"下载过程中出错: {e}")
 
 if __name__ == "__main__":
-    # download_model()
+    download_model()
 
-    download_dataset()
+    # download_dataset()

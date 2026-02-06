@@ -1,0 +1,70 @@
+#!/bin/bash
+
+# ================= 配置区域 =================
+
+# 1. 显卡设置
+# 假设你有至少两张卡。如果只有一张卡，需要调整下方的 DEVICE 参数，并大幅减小 Batch Size
+export CUDA_VISIBLE_DEVICES=0,1,2
+
+export WANDB_PROJECT="cs336-dpo-hh"
+
+# 3. 路径设置
+MODEL_PATH="model/Qwen2.5-3B"
+TRAIN_DATA="data/hh-rlhf"   
+OUTPUT_DIR="results/dpo_qwen"
+
+# 4. 评估数据路径
+GSM8K_PATH="data/gsm8k/test.jsonl"
+MMLU_PATH="data/MMLU-Pro/data/test-00000-of-00001.parquet"
+
+# ================= 显存分配策略 (关键) =================
+# DPO 需要同时加载 Policy Model (训练) 和 Reference Model (冻结)。
+# 此外，你还开启了 vLLM 进行评估。
+# 为了防止显存溢出 (OOM)，建议如下分配：
+# GPU 0: 负责训练 (Policy Model + Optimizer States) -> 显存占用最大
+# GPU 1: 负责参考模型 (Reference Model) + 评估 (vLLM) -> 显存占用较小
+
+POLICY_DEVICE="cuda:0"
+REF_DEVICE="cuda:0"
+VLLM_DEVICE="cuda:1"
+
+# 确保输出目录存在
+mkdir -p "$OUTPUT_DIR"
+mkdir -p "logs"
+
+echo "Starting DPO Training..."
+echo "Model: $MODEL_PATH"
+echo "Output: $OUTPUT_DIR"
+
+# ================= 启动命令 =================
+
+# nohup 后台运行 (可选)，这里直接前台运行方便看日志
+# 使用 set -x 可以打印执行的具体命令
+set -x
+
+python cs336_alignment/train_dpo.py \
+    --seed 42 \
+    --model_id "$MODEL_PATH" \
+    --data_dir "$TRAIN_DATA" \
+    --output_dir "$OUTPUT_DIR" \
+    --device "$POLICY_DEVICE" \
+    --ref_device "$REF_DEVICE" \
+    --lr 5e-7 \
+    --num_epochs 1 \
+    --gradient_accumulation_steps 16 \
+    --beta 0.1 \
+    --max_val_samples 1000 \
+    --wandb_project "$WANDB_PROJECT" \
+    --wandb_run_name "dpo_qwen_3b_run1" \
+    --eval_every_steps 100 \
+    --save_every_steps 500 \
+    --vllm_device "$VLLM_DEVICE" \
+    --vllm_gpu_util 0.3 \
+    --gsm8k_path "$GSM8K_PATH" \
+    --mmlu_path "$MMLU_PATH" \
+    --enable_eval \
+    --eval_mmlu \
+    --eval_gsm8k \
+    2>&1 | tee "logs/dpo_train_$(date +%Y%m%d_%H%M%S).log"
+
+# 如果不需要 MMLU 评估，注释掉 --eval_mmlu 和 --mmlu_path 即可

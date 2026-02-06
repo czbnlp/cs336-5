@@ -278,3 +278,4 @@ result/
 output/
 checkpoints/
 runs/
+model/
