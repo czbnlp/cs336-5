@@ -73,7 +73,7 @@ def compute_dpo_loss(
     # --- 计算监控指标 ---
     chosen_reward = beta * (lp_theta_chosen - lp_ref_chosen).detach()
     rejected_reward = beta * (lp_theta_rejected - lp_ref_rejected).detach()
-    print(chosen_reward[:10], rejected_reward[:10])
+    
     accuracy = (chosen_reward > rejected_reward).float()
     margin = chosen_reward - rejected_reward
 

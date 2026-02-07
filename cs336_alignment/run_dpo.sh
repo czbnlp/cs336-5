@@ -6,10 +6,12 @@
 # 假设你有至少两张卡。如果只有一张卡，需要调整下方的 DEVICE 参数，并大幅减小 Batch Size
 export CUDA_VISIBLE_DEVICES=0,1
 
-export WANDB_PROJECT="cs336-dpo-hh"
+WANDB_PROJECT="cs336-dpo-hh"
+wandb_run_name="dpo_after_qwen_3b_sft"
 
 # 3. 路径设置
-MODEL_PATH="model/Qwen2.5-3B"
+MODEL_PATH="model/Qwen2.5-3B" # base, 应使用SFT model
+MODEL_PATH="result/sft_qwen_7b_ultraChat_SafetyLlama"
 TRAIN_DATA="data/hh-rlhf"   
 OUTPUT_DIR="results/dpo_qwen"
 
@@ -49,7 +51,7 @@ python cs336_alignment/train_dpo.py \
     --beta 0.1 \
     --max_val_samples 1000 \
     --wandb_project "$WANDB_PROJECT" \
-    --wandb_run_name "dpo_qwen_3b_run1" \
+    --wandb_run_name "$wandb_run_name" \
     --eval_every_steps 50 \
     --save_every_steps 500 \
     --vllm_device "$VLLM_DEVICE" \
