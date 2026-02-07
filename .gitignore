@@ -180,6 +180,7 @@ model/
 # 忽略模型权重（必选）
 model/
 result/
+results/
 out/
 checkpoints/
 *.safetensors
