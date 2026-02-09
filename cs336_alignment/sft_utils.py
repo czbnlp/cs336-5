@@ -46,7 +46,6 @@ def tokenize_prompt_and_output(
         # 有些分词器在开头会自动加 BOS，需根据具体模型调整
         p_ids = tokenizer.encode(p_str, add_special_tokens=False)
         o_ids = tokenizer.encode(o_str, add_special_tokens=False)
-        
         # 拼接完整的 ID 序列
         combined_ids = p_ids + o_ids
         all_input_ids.append(combined_ids)

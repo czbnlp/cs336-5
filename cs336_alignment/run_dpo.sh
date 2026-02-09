@@ -7,13 +7,13 @@
 export CUDA_VISIBLE_DEVICES=0,1
 
 WANDB_PROJECT="cs336-dpo-hh"
-wandb_run_name="dpo_after_qwen_3b_sft"
+wandb_run_name="dpo_after_qwen_3b_sft_checkpoint-400"
 
 # 3. 路径设置
 MODEL_PATH="model/Qwen2.5-3B" # base, 应使用SFT model
-MODEL_PATH="result/sft_qwen_7b_ultraChat_SafetyLlama"
+MODEL_PATH="result/sft_qwen_3b_ultraChat_SafetyLlama_new/checkpoint-400"
 TRAIN_DATA="data/hh-rlhf"   
-OUTPUT_DIR="results/dpo_qwen"
+OUTPUT_DIR="result/dpo_qwen_3b_sft_checkpoint-400"
 
 # 4. 评估数据路径
 GSM8K_PATH="data/gsm8k/test.jsonl"

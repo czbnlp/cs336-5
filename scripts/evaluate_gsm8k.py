@@ -55,7 +55,6 @@ def call_api(item):
             messages=[{"role": "user", "content": item["prompt"]}],
             temperature=0.0,
             max_tokens=512,
-            stop=["# Query:", "```"]
         )
         gen_text = response.choices[0].message.content
         pred = parse_gsm8k_response(gen_text)

@@ -22,17 +22,18 @@ def main():
     parser.add_argument("--batch_size", type=int, default=32, help="Effective batch size")
     parser.add_argument("--micro_batch_size", type=int, default=2, help="Batch size per forward pass")
     parser.add_argument("--lr", type=float, default=2e-5)
-    parser.add_argument("--max_seq_len", type=int, default=512)
+    parser.add_argument("--max_seq_len", type=int, default=2047)
     parser.add_argument("--epochs", type=int, default=1)
-    parser.add_argument("--eval_steps", type=int, default=100, help="Eval every X steps")
+    parser.add_argument("--eval_every_steps", type=int, default=100, help="Eval every X steps")
+    parser.add_argument("--save_every_steps", type=int, default=200, help="Save checkpoint every X steps") # 新增参数
     parser.add_argument("--warmup_ratio", type=float, default=0.03)
     
     args = parser.parse_args()
 
     # --- 1. 初始化 WandB ---
-    run_name = f"lr{args.lr}-bs{args.batch_size}"
+    run_name = f"lr{args.lr}-bs{args.batch_size}-step-save"
     wandb.init(
-        project="cs336-sft-ultraChat-SafetyLlama-qwen_7b", 
+        project="cs336-sft-ultraChat-SafetyLlama-qwen", 
         name=run_name,
         config=vars(args)
     )
@@ -49,12 +50,12 @@ def main():
         attn_implementation="flash_attention_2",
         device_map="auto"
     )
-    # 二者不相等，https://github.com/QwenLM/Qwen/issues/419
-    print(model.config.vocab_size) # 152064
-    print(len(tokenizer)) # 151665
-   
 
-    # 开启梯度检查点以节省显存，这在 8B 模型全参数微调时非常有用
+    # 打印词表大小差异信息
+    print(f"Model vocab size: {model.config.vocab_size}")
+    print(f"Tokenizer vocab size: {len(tokenizer)}")
+
+    # 开启梯度检查点
     model.gradient_checkpointing_enable()
 
     # --- 3. 加载数据集 ---
@@ -79,9 +80,8 @@ def main():
     # --- 4. 优化器与调度器 ---
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.0)
     
-    grad_accum_steps = args.batch_size // args.micro_batch_size
-    steps_per_epoch = len(train_loader) // grad_accum_steps
-    total_steps = steps_per_epoch * args.epochs
+    grad_accum_steps = max(1, args.batch_size // args.micro_batch_size)
+    total_steps = (len(train_loader) // grad_accum_steps) * args.epochs
     
     scheduler = get_cosine_schedule_with_warmup(
         optimizer,
@@ -121,7 +121,7 @@ def main():
                 
                 global_step += 1
                 
-                # 记录指标到 WandB
+                # 记录指标
                 metrics = {
                     "train/loss": accumulated_loss,
                     "train/lr": scheduler.get_last_lr()[0],
@@ -129,13 +129,22 @@ def main():
                 }
 
                 # 周期性验证
-                if eval_loader and global_step % args.eval_steps == 0:
+                if eval_loader and global_step % args.eval_every_steps == 0:
                     val_loss = run_evaluation(model, eval_loader)
                     metrics["eval/loss"] = val_loss
-                    print(f"\nStep {global_step}: Eval Loss = {val_loss:.4f}")
+                    print(f"\n[Step {global_step}] Eval Loss: {val_loss:.4f}")
                     model.train()
 
-                wandb.log(metrics)
+                # --- 新增：周期性保存 ---
+                if global_step % args.save_every_steps == 0:
+                    checkpoint_dir = os.path.join(args.output_dir, f"checkpoint-{global_step}")
+                    os.makedirs(checkpoint_dir, exist_ok=True)
+                    print(f"\n[Step {global_step}] Saving checkpoint to {checkpoint_dir}...")
+                    
+                    model.save_pretrained(checkpoint_dir)
+                    tokenizer.save_pretrained(checkpoint_dir)
+
+                wandb.log(metrics, step=global_step)
                 progress_bar.set_postfix({"loss": f"{accumulated_loss:.4f}"})
                 progress_bar.update(1)
                 
@@ -145,14 +154,13 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     model.save_pretrained(args.output_dir)
     tokenizer.save_pretrained(args.output_dir)
-    print(f"✅ Training finished. Model saved to {args.output_dir}")
+    print(f"✅ Training finished. Final model saved to {args.output_dir}")
     wandb.finish()
 
 def run_evaluation(model, eval_loader):
-    """简单的验证循环"""
+    """验证循环"""
     model.eval()
     total_eval_loss = 0
-    # 为了速度，只在验证集上跑 50 个 batch 取平均
     max_eval_batches = 50 
     
     with torch.no_grad():

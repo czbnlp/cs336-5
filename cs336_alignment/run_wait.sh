@@ -1,5 +1,5 @@
 # ================= 显存检查配置 =================
-GPU_ID=3
+GPU_ID=0
 THRESHOLD_MB=10240  # 10G = 10 * 1024 MB
 CHECK_INTERVAL=60s   # 每 60 秒检查一次
 
@@ -21,5 +21,5 @@ done
 
 # ================= 后续执行指令 =================
 echo "🚀 启动后续任务..."
-export CUDA_VISIBLE_DEVICES='2,3'
-uv run bash cs336_alignment/run_ei_step.sh
+export CUDA_VISIBLE_DEVICES='0,1'
+uv run bash cs336_alignment/run_dpo.sh
