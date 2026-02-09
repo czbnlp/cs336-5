@@ -204,7 +204,7 @@ def run_expert_iteration(args):
                         policy_log_probs=log_probs,
                         response_mask=batch["response_mask"],
                         gradient_accumulation_steps=grad_accum_steps,
-                        normalize_constant=batch["response_mask"].sum().item()
+                        normalize_constant=1.0
                     )
                     acc_loss += loss.item() * grad_accum_steps
                     acc_glob_ent += avg_glob_ent

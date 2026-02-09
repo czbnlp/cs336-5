@@ -243,7 +243,7 @@ def run_expert_iteration(args):
                     policy_log_probs=log_probs,
                     response_mask=mask,
                     gradient_accumulation_steps=grad_accum_steps,
-                    normalize_constant=mask.sum().item()
+                    normalize_constant=1.0
                 )
 
                 # Optimizer Step

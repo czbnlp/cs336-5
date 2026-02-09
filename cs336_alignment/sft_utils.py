@@ -226,6 +226,7 @@ def sft_microbatch_train_step(
     # 最终除数 = batch_size * gradient_accumulation_steps
     microbatch_loss_mean = total_masked_loss / batch_size
     scaled_loss = microbatch_loss_mean / gradient_accumulation_steps
+    
 
     # 4. 执行反向传播
     scaled_loss.backward()

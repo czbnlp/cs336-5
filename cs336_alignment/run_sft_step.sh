@@ -1,5 +1,5 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES='2,3'
+export CUDA_VISIBLE_DEVICES=0,1
 # 模型与数据
 MODEL_ID="model/Qwen2.5-Math-1.5B"
 
@@ -17,7 +17,7 @@ WANDB_PROJECT="cs336-sft-gsm8k-raw"
 DEVICE="cuda:0"
 VLLM_DEVICE="cuda:1"
 
-VLLM_GPU_UTIL=0.6
+VLLM_GPU_UTIL=0.3
 
 # ================= 3. 训练超参数配置 =================
 LR=2e-5
@@ -43,7 +43,7 @@ STEPS_LIST=(256)
 # 如果需要开启过滤，设置为 "--filter_correct"
 # 如果不需要，设置为空字符串 ""
 # FILTER_ARG="--filter_correct" 
-FILTER_ARG="--filter_correct" 
+# FILTER_ARG="--filter_correct" 
 
 for STEPS in "${STEPS_LIST[@]}"; do
     for SIZE in "${DATASET_SIZES[@]}"; do

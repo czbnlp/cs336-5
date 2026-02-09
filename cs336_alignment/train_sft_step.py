@@ -85,13 +85,10 @@ def run_sft_experiment(args):
         low_cpu_mem_usage=True,
         attn_implementation="flash_attention_2"
     ).to(args.device)
-    # 开启梯度检查点 (显存优化关键)
+    # 开启梯度检查点
     policy.gradient_checkpointing_enable()
     
     optimizer = AdamW(policy.parameters(), lr=args.lr)
-    
-    # 混合精度上下文
-    amp_ctx = torch.amp.autocast(device_type="cuda", dtype=torch.bfloat16)
 
     # 初始化 vLLM
     print(f"Initializing vLLM on {args.vllm_device}...")
@@ -178,31 +175,29 @@ def run_sft_experiment(args):
         for _ in range(grad_accum_steps):
             # 随机采样一个 micro-batch
             batch = get_batch(tokenized_train_data, args.micro_batch_size, args.device)
+            logits = policy(batch["input_ids"]).logits
             
-            with amp_ctx: # 混合精度前向传播
-                logits = policy(batch["input_ids"]).logits
+            # 计算 Log-probs (显存优化写法)
+            lse = torch.logsumexp(logits, dim=-1)
+            target_logits = torch.gather(logits, -1, batch["labels"].unsqueeze(-1)).squeeze(-1)
+            log_probs = target_logits - lse
+
+            # 计算熵 (监控用，不参与梯度)
+            with torch.no_grad():
+                token_entropy = compute_entropy(logits)
+                valid_token_mask = (batch["labels"] != tokenizer.pad_token_id)
+                current_res_mask = batch["response_mask"].bool() & valid_token_mask
                 
-                # 计算 Log-probs (显存优化写法)
-                lse = torch.logsumexp(logits, dim=-1)
-                target_logits = torch.gather(logits, -1, batch["labels"].unsqueeze(-1)).squeeze(-1)
-                log_probs = target_logits - lse
+                avg_res_entropy = token_entropy[current_res_mask].mean().item() if current_res_mask.any() else 0.0
+                avg_global_entropy = token_entropy[valid_token_mask].mean().item()
 
-                # 计算熵 (监控用，不参与梯度)
-                with torch.no_grad():
-                    token_entropy = compute_entropy(logits)
-                    valid_token_mask = (batch["labels"] != tokenizer.pad_token_id)
-                    current_res_mask = batch["response_mask"].bool() & valid_token_mask
-                    
-                    avg_res_entropy = token_entropy[current_res_mask].mean().item() if current_res_mask.any() else 0.0
-                    avg_global_entropy = token_entropy[valid_token_mask].mean().item()
-
-                # 计算 Loss 并反向传播
-                loss, _ = sft_microbatch_train_step(
-                    policy_log_probs=log_probs,
-                    response_mask=batch["response_mask"],
-                    gradient_accumulation_steps=grad_accum_steps,
-                    normalize_constant=batch["response_mask"].sum().item() # Token-level average
-                )
+            # 计算 Loss 并反向传播
+            loss, _ = sft_microbatch_train_step(
+                policy_log_probs=log_probs,
+                response_mask=batch["response_mask"],
+                gradient_accumulation_steps=grad_accum_steps,
+                normalize_constant=1.0
+            )
             
             # 累加统计量用于日志
             accumulated_loss += loss.item() * grad_accum_steps # 还原原始 Loss 大小
