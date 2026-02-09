@@ -201,3 +201,7 @@ __pycache__/
 # 忽略日志
 wandb/
 *.log
+results/
+model/
+*.safetensors
+*.bin
