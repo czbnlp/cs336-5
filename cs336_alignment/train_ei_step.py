@@ -4,12 +4,14 @@ import random
 import wandb
 import os
 import argparse
+import pandas as pd
 import numpy as np
 from tqdm import tqdm
 from torch.optim import AdamW
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from vllm import LLM, SamplingParams
 from unittest.mock import patch
+import pandas as pd
 
 # --- 导入自定义工具函数 ---
 from cs336_alignment.sft_utils import (
@@ -18,7 +20,7 @@ from cs336_alignment.sft_utils import (
     log_generations,
     compute_entropy
 )
-from cs336_alignment.drgrpo_grader import r1_zero_reward_fn
+from cs336_alignment.drgrpo_grader import r1_zero_reward_fn, question_only_reward_fn
 
 # ==========================================
 # 辅助函数
@@ -56,6 +58,36 @@ def get_batch(tokenized_data, batch_size, device):
         "response_mask": tokenized_data["response_mask"][batch_indices].to(device)
     }
 
+def load_math12k_dataset(path, prompt_template=None):
+    df = pd.read_parquet(path)
+    processed_items = []
+    for _, row in df.iterrows():
+        q_text = row['problem']
+        gold_answer = row['answer']
+        
+        if gold_answer:
+            processed_items.append({
+                "prompt": prompt_template.replace("{question}", q_text),
+                "gold": gold_answer
+            })
+    return processed_items
+
+def load_gsm8k_dataset(path, prompt_template=None):
+    
+    processed_items = []
+    with open(path, "r") as f:
+        for line in f:
+            item = json.loads(line)
+            q_text = item['question']
+            full_sol = item['answer']
+            gold_answer = full_sol.split("####")[-1].strip() if "####" in full_sol else full_sol.strip()
+            processed_items.append({
+                "prompt": prompt_template.replace("{question}", q_text),
+                "gold": gold_answer
+            })
+    return processed_items
+
+
 # ==========================================
 # Expert Iteration 核心训练逻辑
 # ==========================================
@@ -65,15 +97,22 @@ def run_expert_iteration(args):
     grad_accum_steps = args.batch_size // args.micro_batch_size
     
     wandb.init(project=args.wandb_project, name=args.wandb_run_name, config=vars(args))
-    
+    if 'r1' in args.prompt_path.lower():
+        print("使用 R1 评估模版 (零奖励函数)")
+        reward_fn = r1_zero_reward_fn
+    elif 'question_only' in args.prompt_path.lower():
+        print("使用 Question-Only 评估模版")
+        reward_fn = question_only_reward_fn
+    else:
+        raise ValueError("无法识别的评估模版，请确保 prompt_path 中包含 'r1' 或 'question_only' 以选择对应的奖励函数。")
+
+
     # 定义 WandB 坐标轴
     wandb.define_metric("global_step")
     wandb.define_metric("ei_step")
     wandb.define_metric("train/*", step_metric="global_step")
     wandb.define_metric("eval/*", step_metric="global_step")
 
-    with open(args.prompt_path, "r") as f:
-        r1_template = f.read().strip()
 
     # 2. 模型与分词器初始化
     print(f"Initializing Model: {args.model_id}")
@@ -95,25 +134,20 @@ def run_expert_iteration(args):
     print(f"Initializing vLLM on {args.vllm_device}...")
     vllm_inst = init_vllm(args.model_id, args.vllm_device, args.seed, args.vllm_gpu_util)
 
+
+    with open(args.prompt_path, "r") as f:
+        prompt_template = f.read().strip()
     # 3. 数据池与验证集准备
     print("Loading data pools...")
-    question_pool = []
-    with open(args.train_data_path, "r") as f:
-        for line in f:
-            item = json.loads(line)
-            # 统一提取问题和标答
-            q = item['question']
-            g = item['gold'] if 'gold' in item else item['answer'].split("####")[-1].strip()
-            question_pool.append({"prompt": r1_template.replace("{question}", q), "gold": g})
-
-    val_samples = []
-    with open(args.val_data_path, "r") as f:
-        for i, line in enumerate(f):
-            if i >= args.max_eval_samples: break
-            item = json.loads(line)
-            gold = item['answer'].split("####")[-1].strip() if "####" in item['answer'] else item['answer'].strip()
-            val_samples.append({"prompt": r1_template.replace("{question}", item['question']), "gold": gold})
-
+    if 'math12k' in args.train_data_path.lower():
+        question_pool = load_math12k_dataset(args.train_data_path, prompt_template)
+        val_samples = load_math12k_dataset(args.val_data_path, prompt_template)[:args.max_eval_samples]
+    elif 'gsm8k' in args.train_data_path.lower():
+        question_pool = load_gsm8k_dataset(args.train_data_path, prompt_template)
+        val_samples = load_gsm8k_dataset(args.val_data_path, prompt_template)[:args.max_eval_samples]
+    else:
+        raise ValueError("Unsupported dataset. Please use Math12K or GSM8K.")
+    
     eval_params = SamplingParams(temperature=0.0, max_tokens=args.max_tokens, stop=["</answer>"], include_stop_str_in_output=True)
     rollout_params = SamplingParams(n=args.rollouts, temperature=1.0, max_tokens=args.max_tokens, min_tokens=4, stop=["</answer>"], include_stop_str_in_output=True)
 
@@ -126,7 +160,7 @@ def run_expert_iteration(args):
     metrics = log_generations(vllm_inst, eval_params, 
                              [s['prompt'] for s in val_samples], 
                              [s['gold'] for s in val_samples], 
-                             r1_zero_reward_fn, 0, "eval")
+                             reward_fn, 0, "eval")
     print(f"Initial Accuracy: {metrics.get('eval/accuracy', 0):.2%}")
 
     # ----------------------------------------------------------
@@ -148,20 +182,25 @@ def run_expert_iteration(args):
         
         # --- B. 过滤阶段 (Verify) ---
         expert_raw_data = []
+        success_question_num = 0
         for i, output in enumerate(outputs):
             current_gold = batch_db[i]['gold']
+            success_flag = 0
             for candidate in output.outputs:
                 # 只有格式和答案双对的才保留
-                if r1_zero_reward_fn(candidate.text, current_gold)['reward'] == 1.0:
+                if reward_fn(candidate.text, current_gold)['reward'] == 1.0:
+                    success_flag = 1
                     expert_raw_data.append({"prompt": batch_db[i]['prompt'], "response": candidate.text})
+            success_question_num += success_flag
         
         success_rate = len(expert_raw_data) / (len(batch_db) * args.rollouts)
+        
         print(f">> 采样成功率: {success_rate:.2%} | 获得专家样本: {len(expert_raw_data)}")
-        wandb.log({"ei/success_rate": success_rate, "ei/collected_count": len(expert_raw_data), "ei_step": ei_step + 1}, step=global_optim_step)
+        wandb.log({"ei/success_rate": success_rate,
+                    "ei/success_question_rate": success_question_num/len(batch_db),
+                     "ei/collected_count": len(expert_raw_data),
+                      "ei_step": ei_step + 1}, step=global_optim_step)
 
-        if len(expert_raw_data) < args.batch_size:
-            print("!! 专家样本太少，无法凑够一个 Batch，跳过本轮训练。")
-            continue
 
         # --- C. 动态训练阶段 (Training) ---
         # 核心逻辑：基于数据量动态计算训练步数
@@ -235,7 +274,7 @@ def run_expert_iteration(args):
                     vllm_inst, eval_params, 
                     [s['prompt'] for s in val_samples], 
                     [s['gold'] for s in val_samples], 
-                    r1_zero_reward_fn, 
+                    reward_fn, 
                     global_optim_step, 
                     "eval"
                 )
@@ -248,7 +287,7 @@ def run_expert_iteration(args):
         metrics = log_generations(vllm_inst, eval_params, 
                                  [s['prompt'] for s in val_samples], 
                                  [s['gold'] for s in val_samples], 
-                                 r1_zero_reward_fn, global_optim_step, "eval")
+                                 reward_fn, global_optim_step, "eval")
         print(f"Accuracy: {metrics.get('eval/accuracy', 0):.2%}")
 
         # 每轮迭代保存一次 Checkpoint

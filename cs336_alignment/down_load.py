@@ -6,7 +6,8 @@ def download_dataset():
     # repo_id = "garg-aayush/sft-cs336-assign5-datasets"
     # repo_id = "openbmb/UltraChat"
     # repo_id = "TIGER-Lab/MMLU-Pro"
-    repo_id = "Anthropic/hh-rlhf"
+    # repo_id = "Anthropic/hh-rlhf"
+    repo_id = "hiyouga/math12k"
     
     # 本地保存的目标目录
     local_dir = f"data/{repo_id.split('/')[-1]}"
@@ -65,6 +66,6 @@ def download_model():
         print(f"下载过程中出错: {e}")
 
 if __name__ == "__main__":
-    download_model()
+    # download_model()
 
-    # download_dataset()
+    download_dataset()

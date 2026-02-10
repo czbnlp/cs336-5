@@ -191,10 +191,6 @@ def run_expert_iteration(args):
             "ei/success_rate": success_rate
         }, step=global_train_step) # 这里的 step 对齐到总训练步
 
-        if len(expert_dataset) == 0:
-            print("!! No expert traces found. Skipping training step.")
-            continue
-
         # --- B. 训练 (Inner Loop SFT) ---
         print(f">> Training on expert data ({len(expert_dataset)} samples, {args.sft_epochs} epochs)...")
         policy.train()

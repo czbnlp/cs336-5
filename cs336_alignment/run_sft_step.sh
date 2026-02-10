@@ -3,14 +3,14 @@ export CUDA_VISIBLE_DEVICES=0,1
 # 模型与数据
 MODEL_ID="model/Qwen2.5-Math-1.5B"
 
-# TRAIN_DATA="data/gsm8k/train_sft_reason_gsm8k_raw.jsonl" # 原始数据
-TRAIN_DATA="data/gsm8k/train_sft_reason_gsm8k_r1.jsonl"  # r1
+TRAIN_DATA="data/gsm8k/train_sft_reason_gsm8k_raw.jsonl" # 原始数据
+# TRAIN_DATA="data/gsm8k/train_sft_reason_gsm8k_r1.jsonl"  # r1
 # 验证集 (Python 脚本内会自动处理格式)
 VAL_DATA="data/gsm8k/test.jsonl"
 PROMPT_TEMPLATE="cs336_alignment/prompts/r1_zero.prompt"
 
 # 输出与日志
-OUTPUT_BASE="result/sft-gsm8k-r1"
+OUTPUT_BASE="result/sft-gsm8k-raw-fixed"
 WANDB_PROJECT="cs336-sft-gsm8k-raw"
 
 # ================= 2. 硬件与资源配置 =================
@@ -49,7 +49,7 @@ for STEPS in "${STEPS_LIST[@]}"; do
     for SIZE in "${DATASET_SIZES[@]}"; do
         
         # 构造 Run Name
-        RUN_NAME="sft_size${SIZE}_steps${STEPS}_gsm8k_r1"
+        RUN_NAME="sft_size${SIZE}_steps${STEPS}_gsm8k_raw_fixed"
         CURRENT_OUTPUT_DIR="${OUTPUT_BASE}/${RUN_NAME}"
 
         echo "========================================================="

@@ -1,5 +1,5 @@
 #!/bin/bash
-
+export CUDA_VISIBLE_DEVICES=2,3
 # --- 基础配置 ---
 # 注意：EI 最好从一个已经 SFT 过的模型开始，而不是 Base 模型
 # 这里假设你已经跑完了 SFT 并存了一个模型
@@ -7,9 +7,16 @@ BASE_MODEL="model/Qwen2.5-Math-1.5B"
 
 TRAIN_DATA="data/gsm8k/train_sft_reason_gsm8k_raw.jsonl"
 VAL_DATA="data/gsm8k/test.jsonl"
-PROMPT_TEMPLATE="cs336_alignment/prompts/r1_zero.prompt"
-OUTPUT_BASE="result/ei_checkpoints"
 WANDB_PROJECT="cs336-ei-gsm8k_raw"
+
+# TRAIN_DATA="data/math12k/data/train-00000-of-00001.parquet"
+# VAL_DATA="data/math12k/data/test-00000-of-00001.parquet"
+# WANDB_PROJECT="cs336-ei-math12k_raw"
+
+PROMPT_TEMPLATE="cs336_alignment/prompts/r1_zero.prompt"
+# PROMPT_TEMPLATE="cs336_alignment/prompts/question_only.prompt"
+OUTPUT_BASE="result/ei_checkpoints"
+
 
 
 # ================= 2. 消融实验参数空间 =================
@@ -21,12 +28,12 @@ WANDB_PROJECT="cs336-ei-gsm8k_raw"
 # 你可以根据需求在数组中添加更多组合
 # 格式: "G:Db:Epoch"
 CONFIGS=(
-    # "4:1024:1"
-    # "8:1024:1"
-    # "4:4096:1"
-    "8:4096:1"
-    "4:7000:1"
-    "8:7000:1"
+    "4:512:1"
+    "8:512:1"
+    "4:1024:1"
+    "8:1024:1"
+    "4:2048:1"
+    "8:2048:1"
 )
 
 # ================= 3. 硬件与通用超参 =================
@@ -37,7 +44,7 @@ EI_STEPS=5         # 迭代总代数
 MAX_TOKENS=1024
 DEVICE="cuda:0"
 VLLM_DEVICE="cuda:1"
-VLLM_UTIL=0.9      # 预留显存给训练卡
+VLLM_UTIL=0.7      # 预留显存给训练卡
 
 # ================= 4. 循环运行实验 =================
 TOTAL_EXPS=${#CONFIGS[@]}
@@ -50,7 +57,7 @@ for CFG in "${CONFIGS[@]}"; do
     IFS=":" read -r G DB E <<< "$CFG"
     
     # 构造唯一实验名称
-    RUN_NAME="ei_G${G}_Db${DB}_E${E}_lr${LR}"
+    RUN_NAME="ei_G${G}_Db${DB}_E${E}_lr${LR}_add_success-question-rate"
     EXP_OUTPUT_DIR="${OUTPUT_BASE}/${RUN_NAME}"
     
     echo "========================================================="
