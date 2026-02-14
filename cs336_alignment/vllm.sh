@@ -1,10 +1,10 @@
 export CUDA_VISIBLE_DEVICES='2'
 vllm serve model/Qwen2.5-Math-1.5B \
-    --served-model-name Qwen2.5-7B-Base \
+    --served-model-name Qwen2.5-Math-1.5B \
     --tensor-parallel-size 1 \
     --dtype bfloat16 \
     --gpu-memory-utilization 0.3 \
-    --max-model-len 1000 \
+    --max-model-len 2000 \
     --host 0.0.0.0 \
     --port 8010
 

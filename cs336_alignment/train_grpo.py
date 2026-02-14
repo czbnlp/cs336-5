@@ -6,6 +6,7 @@ import os
 import argparse
 import numpy as np
 import re
+import pandas as pd
 from tqdm import tqdm
 from torch.optim import AdamW
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -16,7 +17,6 @@ from unittest.mock import patch
 from cs336_alignment.sft_utils import (
     tokenize_prompt_and_output, 
     get_response_log_probs,
-    compute_entropy
 )
 from cs336_alignment.grpo_utils import (
     compute_group_normalized_rewards,
@@ -28,6 +28,37 @@ from cs336_alignment.drgrpo_grader import r1_zero_reward_fn, question_only_rewar
 # ==========================================
 # 辅助函数
 # ==========================================
+
+
+def load_math12k_dataset(path, prompt_template=None):
+    df = pd.read_parquet(path)
+    processed_items = []
+    for _, row in df.iterrows():
+        q_text = row['problem']
+        gold_answer = row['answer']
+        
+        if gold_answer:
+            processed_items.append({
+                "prompt": prompt_template.replace("{question}", q_text),
+                "gold": gold_answer
+            })
+    return processed_items
+
+def load_gsm8k_dataset(path, prompt_template=None):
+    
+    processed_items = []
+    with open(path, "r") as f:
+        for line in f:
+            item = json.loads(line)
+            q_text = item['question']
+            full_sol = item['answer']
+            gold_answer = full_sol.split("####")[-1].strip() if "####" in full_sol else full_sol.strip()
+            processed_items.append({
+                "prompt": prompt_template.replace("{question}", q_text),
+                "gold": gold_answer
+            })
+    return processed_items
+
 
 def init_vllm(model_id, device, seed, gpu_memory_utilization):
     """初始化 vLLM 实例"""
@@ -76,45 +107,15 @@ def run_grpo_training(args):
     with open(args.prompt_path, "r") as f:
         prompt_template = f.read().strip()
 
-    # 2. 数据加载
-    # 训练集加载 (Questions Pool)
-    print(f"Loading questions from {args.train_data_path}...")
-    questions_pool = []
-    with open(args.train_data_path, "r") as f:
-        for line in f:
-            item = json.loads(line)
-            # 确保 prompt 格式正确 (以 <think> 结尾)
-            prompt = prompt_template.replace("{question}", item['question'])
-            # 兼容处理 gold/answer 字段
-            if 'gold' in item:
-                gold = item['gold']
-            elif 'answer' in item:
-                gold = item['answer'].split("####")[-1].strip()
-            else:
-                continue
-            questions_pool.append({"prompt": prompt, "gold": gold})
-    print(f"Total training questions: {len(questions_pool)}")
-
-    # 验证集加载 (用于评估)
-    # 假设 validation 数据在 data/gsm8k/test.jsonl
-    val_data_path = args.test_data_path
-
-    
-    val_samples = []
-    if os.path.exists(val_data_path):
-        print(f"Loading validation data from {val_data_path}...")
-        with open(val_data_path, "r") as f:
-            for i, line in enumerate(f):
-                if i >= args.max_eval_samples: break
-                item = json.loads(line)
-                prompt = prompt_template.replace("{question}", item['question'])
-                # 处理原始 GSM8K 的 answer 字段
-                raw_a = item.get('answer', "")
-                gold = raw_a.split("####")[-1].strip() if "####" in raw_a else raw_a.strip()
-                val_samples.append({"prompt": prompt, "gold": gold})
+    if 'math12k' in args.train_data_path.lower():
+        questions_pool = load_math12k_dataset(args.train_data_path, prompt_template)
+        val_samples = load_math12k_dataset(args.test_data_path, prompt_template)[:args.max_eval_samples]
+    elif 'gsm8k' in args.train_data_path.lower():
+        questions_pool = load_gsm8k_dataset(args.train_data_path, prompt_template)
+        val_samples = load_gsm8k_dataset(args.test_data_path, prompt_template)[:args.max_eval_samples]
     else:
-        print("Warning: No validation file found. Using random subset of train.")
-        val_samples = questions_pool[:args.max_eval_samples]
+        raise ValueError("Unsupported dataset. Please use Math12K or GSM8K.")
+    print(f"Total training questions: {len(questions_pool)}")
 
     # 定义评估用的采样参数 
     eval_sampling_params = SamplingParams(

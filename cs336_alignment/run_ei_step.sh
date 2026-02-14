@@ -5,7 +5,7 @@ export CUDA_VISIBLE_DEVICES=2,3
 # 这里假设你已经跑完了 SFT 并存了一个模型
 BASE_MODEL="model/Qwen2.5-Math-1.5B"
 
-TRAIN_DATA="data/gsm8k/train_sft_reason_gsm8k_raw.jsonl"
+TRAIN_DATA="data/gsm8k/train.jsonl"
 VAL_DATA="data/gsm8k/test.jsonl"
 WANDB_PROJECT="cs336-ei-gsm8k_raw"
 
@@ -57,7 +57,7 @@ for CFG in "${CONFIGS[@]}"; do
     IFS=":" read -r G DB E <<< "$CFG"
     
     # 构造唯一实验名称
-    RUN_NAME="ei_G${G}_Db${DB}_E${E}_lr${LR}_add_success-question-rate"
+    RUN_NAME="ei_G${G}_Db${DB}_E${E}_lr${LR}"
     EXP_OUTPUT_DIR="${OUTPUT_BASE}/${RUN_NAME}"
     
     echo "========================================================="

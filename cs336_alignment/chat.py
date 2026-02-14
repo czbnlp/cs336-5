@@ -35,26 +35,17 @@ def interactive_chat():
         print("\n助手正在思考...", end="\r")
 
         try:
-            # 使用 Completions API (补全模式)
-            # 因为你之前的 Prompt 包含了 Assistant: <think>，
-            # 补全模式能让模型直接接龙，不被 vLLM 的默认对话模版干扰。
-            
-            # 如果你想用 R1 的固定模版，可以把用户输入嵌入到模版中：
-            full_prompt = (
-                "A conversation between User and Assistant. The User asks a question, and the Assistant solves it. "
-                "The Assistant first thinks about the reasoning process in the mind and then provides the User with the answer. "
-                "The reasoning process is enclosed within <think> </think> and answer is enclosed within <answer> </answer> tags.\n"
-                f"User: {user_input}\n"
-                "Assistant: <think>"
-            )
-            # full_prompt = f"{user_input}"
 
-
+            prompt_template_path = 'cs336_alignment/prompts/question_only.prompt'
+            # prompt_template_path = 'cs336_alignment/prompts/question_only_fewshot.prompt'
+            with open(prompt_template_path, "r") as f:
+                prompt_template = f.read()
+            full_prompt = prompt_template.replace("{question}", user_input)
             response = client.completions.create(
                 model=model_name,
                 prompt=full_prompt,
                 max_tokens=800,
-                temperature=0.6,
+                temperature=0.01,
                 # stop=["</answer>"] # 强制在答案结束后停止
             )
 

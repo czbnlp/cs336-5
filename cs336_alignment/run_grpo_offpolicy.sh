@@ -1,17 +1,24 @@
 #!/bin/bash
-
+# export CUDA_VISIBLE_DEVICES='1,3'
+# uv run bash cs336_alignment/run_grpo_offpolicy.sh
 # ================= 1. 基础路径与项目配置 =================
 BASE_MODEL="model/Qwen2.5-Math-1.5B" 
 
-TRAIN_DATA="data/gsm8k/train.jsonl"
-VAL_DATA="data/gsm8k/test.jsonl"
+# TRAIN_DATA="data/gsm8k/train.jsonl"
+# VAL_DATA="data/gsm8k/test.jsonl"
+# WANDB_PROJECT="cs336-grpo-after-base-offpolicy"
+
+TRAIN_DATA="data/math12k/data/train-00000-of-00001.parquet"
+VAL_DATA="data/math12k/data/test-00000-of-00001.parquet"
+WANDB_PROJECT="cs336-grpo-math12k-after-base-offpolicy"
+
 PROMPT_TEMPLATE="cs336_alignment/prompts/r1_zero.prompt"
 OUTPUT_BASE="result/grpo_offpolicy_study"
-WANDB_PROJECT="cs336-grpo-after-base-offpolicy"
+
 
 # ================= 2. 学习率锚点逻辑 =================
 # 锚点：1个 Epoch, 256 Batch 时的基准学习率
-ANCHOR_LR="0.00003"  
+ANCHOR_LR="0.00003"
 ANCHOR_BATCH=256
 
 # ================= 3. 定义具体的实验配置列表 =================
@@ -19,11 +26,13 @@ ANCHOR_BATCH=256
 CONFIGS=(
     # "1:256"   
     # "1:64"    
+    "1:128"  
+    "3:64" 
     # "3:128" 
-    # "3:256"    
-    "5:64"  
-    "5:128"  
-    "5:256"  
+    "3:256"    
+    "2:64"    
+    "2:256"   
+    "2:128"  
 )
 
 # ================= 4. 硬件与通用超参 =================

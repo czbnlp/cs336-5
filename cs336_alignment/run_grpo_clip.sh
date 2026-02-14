@@ -44,7 +44,7 @@ uv run python cs336_alignment/train_grpo.py \
     --length_norm_type "mask_normalize" \
     --device cuda:0 \
     --vllm_device cuda:1 \
-    --vllm_gpu_util 0.5 \
+    --vllm_gpu_util 0.3 \
     --eval_every_steps 8 \
     --wandb_project "$WANDB_PROJECT" \
     --wandb_run_name "$RUN_NAME" \

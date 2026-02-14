@@ -1,5 +1,5 @@
 #!/bin/bash
-# export CUDA_VISIBLE_DEVICES='1,3'
+# export CUDA_VISIBLE_DEVICES='1,2'
 # uv run bash cs336_alignment/run_grpo_lr.sh
 # ================= 配置区 =================
 
@@ -7,15 +7,18 @@ BASE_MODEL="model/Qwen2.5-Math-1.5B" # base model
 # BASE_MODEL="result/checkpoints/sft_subset7395_filteredTrue"  # sft model
 
 # 数据与模版
-TRAIN_DATA="data/gsm8k/train.jsonl"
-TEST_DATA="data/gsm8k/test.jsonl"
+# TRAIN_DATA="data/gsm8k/train.jsonl"
+# TEST_DATA="data/gsm8k/test.jsonl"
+TRAIN_DATA="data/math12k/data/train-00000-of-00001.parquet"
+TEST_DATA="data/math12k/data/test-00000-of-00001.parquet"
 PROMPT_TEMPLATE="cs336_alignment/prompts/r1_zero.prompt"
 OUTPUT_BASE="result/grpo_lr_sweep"
-WANDB_PROJECT="cs336-grpo-after-base-lr-grpo_clip"
 
+# WANDB_PROJECT="cs336-grpo-after-base-lr-grpo_clip"
+WANDB_PROJECT="cs336-grpo-math12k-after-base-lr-grpo_clip"
 # 待测试的学习率列
-# LR_LIST=(1e-6 5e-6 1e-5 3e-5 5e-5)
-LR_LIST=(6e-5) # 学习率过高
+LR_LIST=(1e-6 5e-6 1e-5 3e-5 5e-5)
+# LR_LIST=(6e-5) # 学习率过高
 # ================= 循环运行 =================
 for LR in "${LR_LIST[@]}"; do
     RUN_NAME="grpo_lr${LR}"

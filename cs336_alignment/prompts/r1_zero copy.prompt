@@ -1,3 +1,0 @@
-A conversation between User and Assistant. The User asks a question, and the Assistant solves it. The final result only requires a direct output of the answer without any explanations.
-User: {question}
-Assistant: <think>

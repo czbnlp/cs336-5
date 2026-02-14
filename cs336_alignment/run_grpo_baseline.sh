@@ -1,15 +1,18 @@
 #!/bin/bash
-
+# export CUDA_VISIBLE_DEVICES='0,3'
+# uv run bash cs336_alignment/run_grpo_baseline.sh
 # ================= 配置区 =================
 
 BASE_MODEL="model/Qwen2.5-Math-1.5B" # base model
-# BASE_MODEL="result/checkpoints/sft_subset7395_filteredTrue" # sft model
+
+WANDB_PROJECT="cs336-grpo-math12k-after-base-baseline"
+BEST_LR=3e-5
+TRAIN_DATA="data/math12k/data/train-00000-of-00001.parquet"
+TEST_DATA="data/math12k/data/test-00000-of-00001.parquet"
+
 # WANDB_PROJECT="cs336-grpo-after-sft-std_lr3e-5"
-WANDB_PROJECT="cs336-grpo-after-base-std"
-BEST_LR=5e-5
-
-
-TRAIN_DATA="data/gsm8k/train.jsonl"
+# TRAIN_DATA="data/gsm8k/train.jsonl"
+# TEST_DATA="data/gsm8k/test.jsonl"
 PROMPT_TEMPLATE="cs336_alignment/prompts/r1_zero.prompt"
 OUTPUT_BASE="result/grpo_baseline_study"
 
@@ -47,6 +50,7 @@ for TYPE in "${LOSS_TYPES[@]}"; do
     uv run python cs336_alignment/train_grpo.py \
         --model_id "$BASE_MODEL" \
         --train_data_path "$TRAIN_DATA" \
+        --test_data_path "$TEST_DATA" \
         --prompt_path "$PROMPT_TEMPLATE" \
         --output_dir "$CURRENT_OUTPUT_DIR" \
         --n_grpo_steps 200 \
@@ -60,9 +64,9 @@ for TYPE in "${LOSS_TYPES[@]}"; do
         $STD_NORM_ARG \
         --device cuda:0 \
         --vllm_device cuda:1 \
-        --vllm_gpu_util 0.6 \
+        --vllm_gpu_util 0.3 \
         --eval_every_steps 8 \
-        --save_every_steps 20 \
+        --save_every_steps 200 \
         --wandb_project "$WANDB_PROJECT" \
         --wandb_run_name "$RUN_NAME" \
         --seed 42

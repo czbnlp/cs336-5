@@ -187,7 +187,7 @@ def run_expert_iteration(args):
             current_gold = batch_db[i]['gold']
             success_flag = 0
             for candidate in output.outputs:
-                # 只有格式和答案双对的才保留
+
                 if reward_fn(candidate.text, current_gold)['reward'] == 1.0:
                     success_flag = 1
                     expert_raw_data.append({"prompt": batch_db[i]['prompt'], "response": candidate.text})
@@ -195,7 +195,7 @@ def run_expert_iteration(args):
         
         success_rate = len(expert_raw_data) / (len(batch_db) * args.rollouts)
         
-        print(f">> 采样成功率: {success_rate:.2%} | 获得专家样本: {len(expert_raw_data)}")
+        print(f">> 采样成功率: {success_rate:.2%} | 获得专家样本: {len(expert_raw_data)} | 问题正确数量与比例：{success_question_num}/ {success_question_num/len(batch_db)}")
         wandb.log({"ei/success_rate": success_rate,
                     "ei/success_question_rate": success_question_num/len(batch_db),
                      "ei/collected_count": len(expert_raw_data),

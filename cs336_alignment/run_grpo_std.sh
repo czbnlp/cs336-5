@@ -2,14 +2,17 @@
 
 # ================= 配置区 =================
 BASE_MODEL="model/Qwen2.5-Math-1.5B" # base model
-TRAIN_DATA="data/gsm8k/train.jsonl"
-VAL_DATA="data/gsm8k/test.jsonl"
+# TRAIN_DATA="data/gsm8k/train.jsonl"
+# TEST_DATA="data/gsm8k/test.jsonl"
+
+TRAIN_DATA="data/math12k/data/train-00000-of-00001.parquet"
+TEST_DATA="data/math12k/data/test-00000-of-00001.parquet"
+
+
 PROMPT_TEMPLATE="cs336_alignment/prompts/r1_zero.prompt"
 OUTPUT_BASE="result/grpo_std"
-WANDB_PROJECT="cs336-grpo-after-base-std"
+WANDB_PROJECT="cs336-grpo-math12k-after-base-std"
 
-# 实验参数：使用 3e-5 或 5e-5 取决于之前的 LR Sweep 结果
-# 注意：Sentence-level (mask_normalize) 梯度较大，若崩了请调小 LR 至 1e-5
 BEST_LR=3e-5 
 N_STEPS=200
 
@@ -17,7 +20,7 @@ N_STEPS=200
 # 格式: "长度归一化方式:是否使用标准差"
 # 1. mask_mean:with_std      -> Token-level 标准版
 # 2. mask_mean:no_std        -> Token-level 简化版 (Dr. GRPO)
-# 3. mask_normalize:no_std   -> Sentence-level 强化推理版 (R1 风格)
+# 3. mask_normalize:no_std   -> Sentence-level 推理版 (R1 风格)
 EXPERIMENTS=(
     "mask_mean:with_std"
     "mask_mean:no_std"
@@ -49,7 +52,7 @@ for EXP in "${EXPERIMENTS[@]}"; do
     uv run python cs336_alignment/train_grpo.py \
         --model_id "$BASE_MODEL" \
         --train_data_path "$TRAIN_DATA" \
-        --test_data_path "$VAL_DATA" \
+        --test_data_path "$TEST_DATA" \
         --prompt_path "$PROMPT_TEMPLATE" \
         --output_dir "$EXP_OUTPUT_DIR" \
         $STD_FLAG \
