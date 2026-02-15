@@ -1,5 +1,5 @@
 #!/bin/bash
-# export CUDA_VISIBLE_DEVICES='1,3'
+# export CUDA_VISIBLE_DEVICES='0,3'
 # uv run bash cs336_alignment/run_grpo_offpolicy.sh
 # ================= 1. 基础路径与项目配置 =================
 BASE_MODEL="model/Qwen2.5-Math-1.5B" 
@@ -24,11 +24,11 @@ ANCHOR_BATCH=256
 # ================= 3. 定义具体的实验配置列表 =================
 # 格式为 "Epochs:TrainBatchSize"
 CONFIGS=(
-    # "1:256"   
-    # "1:64"    
+    "1:256"   
+    "1:64"    
     "1:128"  
     "3:64" 
-    # "3:128" 
+    "3:128" 
     "3:256"    
     "2:64"    
     "2:256"   
@@ -60,7 +60,7 @@ for CFG in "${CONFIGS[@]}"; do
     ACCUM_STEPS=$((TB / MICRO_BS))
     
     # 3. 构造运行名称
-    RUN_NAME="E${E}_TB${TB}_LR${LR}"
+    RUN_NAME="E${E}_TB${TB}_LR${LR}_no-std"
     CURRENT_OUTPUT_DIR="${OUTPUT_BASE}/${RUN_NAME}"
 
     echo "========================================================="
@@ -93,7 +93,7 @@ for CFG in "${CONFIGS[@]}"; do
         --wandb_project "$WANDB_PROJECT" \
         --wandb_run_name "$RUN_NAME" \
         --seed "$SEED" \
-        --use_std_normalization # 默认开启标准差归一化
+        # --use_std_normalization # 默认开启标准差归一化
 
     # 错误处理
     if [ $? -ne 0 ]; then

@@ -52,7 +52,7 @@ def compute_group_normalized_rewards(
 
     Returns:
         Tuple[torch.Tensor, torch.Tensor, Dict[str, float]]:
-            1. advantages: 归一化后的优势分数，形状 (Total_Samples,)。
+            1. advantages: 归一化后的优势分数，形状 (Total_Samples,)。 # Total_Samples = N * G
             2. raw_rewards: 原始奖励分数，形状 (Total_Samples,)。
             3. metadata: 包含统计信息（如平均奖励、最大/最小奖励等）的字典，用于日志记录。
     """
@@ -91,13 +91,10 @@ def compute_group_normalized_rewards(
     # dim=1 表示沿着“组”的维度（列）求平均
     # keepdim=True 保持形状为 (N, 1)，这是为了后面能利用广播机制让 (N, G) 减去 (N, 1)
     group_means = grouped_rewards.mean(dim=1, keepdim=True)
-    
-    # 计算组内标准差 (如果需要)
-    if normalize_by_std:
-        group_stds = grouped_rewards.std(dim=1, keepdim=True)
-
+        
     # --- 4. 计算优势 (Advantage Calculation) ---
     if normalize_by_std:
+        group_stds = grouped_rewards.std(dim=1, keepdim=True)
         # 对应公式 (28)
         # 广播机制：(N, G) - (N, 1) -> (N, G)
         # 每个分数减去它所在组的平均分，再除以标准差
@@ -242,7 +239,7 @@ def compute_grpo_clip_loss(
         # - A > 0 且 ratio > 1.2 => surr1=15, surr2=12 => 选 surr2 (触发截断)
         # - A < 0 且 ratio < 0.8 => surr1=-5, surr2=-8 => 选 surr2 (触发截断)
         # - A > 0 且 ratio < 0.8 => surr1=7,  surr2=8  => 选 surr1 (不截断，鼓励模型改错)
-        clipped_mask = (surr2 < surr1).float()
+        clipped_mask = ( surr2< surr1).float()
         clip_fraction = clipped_mask.mean()
         
         metadata = {
@@ -346,18 +343,12 @@ def masked_normalize(
     Returns:
         归一化后的求和结果。
     """
-    # 1. 将 tensor 与 mask 相乘，排除 mask == 0 的元素
+    # 将 tensor 与 mask 相乘，排除 mask == 0 的元素
     masked_tensor = tensor * mask
     
-    # 2. 根据 dim 参数进行求和
-    if dim is None:
-        # 对张量中的所有元素求和，返回一个标量
-        total_sum = torch.sum(masked_tensor)
-    else:
-        # 沿着指定的维度求和
-        total_sum = torch.sum(masked_tensor, dim=dim)
+    total_sum = torch.sum(masked_tensor, dim=dim)
         
-    # 3. 除以归一化常数
+    #  除以归一化常数
     return total_sum / normalize_constant
 
 def masked_mean(
@@ -383,9 +374,6 @@ def masked_mean(
     # 3. 计算有效元素的数量（分母）
     mask_count = torch.sum(mask, dim=dim)
     
-    # 4. 核心修正：直接相除
-    # 当 mask_count 为 0 时，0.0 / 0.0 会得到 NaN
-    # 这符合测试脚本中 snapshot 的预期
     return masked_sum / mask_count
 
 def grpo_microbatch_train_step(

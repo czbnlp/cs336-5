@@ -229,7 +229,7 @@ def run_grpo_training(args):
         )
         
         # 截断处理
-        max_len = 2048
+        max_len = args.max_len
         input_ids_tensor = all_inputs['input_ids']
         if input_ids_tensor.size(1) > max_len:
             all_input_ids = input_ids_tensor[:, :max_len].to(args.device)
@@ -363,10 +363,13 @@ if __name__ == "__main__":
     parser.add_argument("--gradient_accumulation_steps", type=int, default=128)
     parser.add_argument("--epochs_per_rollout_batch", type=int, default=1)
     
+    
+    
     # 采样参数
     parser.add_argument("--sampling_temperature", type=float, default=1.0)
     parser.add_argument("--sampling_max_tokens", type=int, default=1024)
     parser.add_argument("--sampling_min_tokens", type=int, default=4)
+    parser.add_argument("--max_len", type=int, default=2048)
     
     # GRPO 特定
     parser.add_argument("--advantage_eps", type=float, default=1e-6)
